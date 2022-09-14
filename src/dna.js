@@ -1,4 +1,4 @@
-const DNA_DELIMITER = "-";
+const DNA_DELIMITER = "?";
 
 const selectTraits = (layers) => {
   let traits = [];
@@ -19,8 +19,7 @@ const selectTraits = (layers) => {
           name: layer.elements[i].name,
           filename: layer.elements[i].filename,
           bypassDNA: layer.bypassDNA,
-          },
-        );
+        });
       }
     }
   });
@@ -32,9 +31,7 @@ const createDna = (traits) => {
 
   traits.forEach((trait) => {
     dna.push(
-      `${trait.id}:${trait.filename}${
-        trait.bypassDNA ? "?bypassDNA=true" : ""
-      }`
+      `${trait.id}:${trait.filename}${trait.bypassDNA ? "?bypassDNA=true" : ""}`
     );
   });
 
@@ -113,4 +110,4 @@ module.exports = {
   isDnaUnique,
   constructLayerToDna,
   filterDNAOptions,
-}
+};

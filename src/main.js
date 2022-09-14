@@ -2,9 +2,10 @@ const basePath = process.cwd();
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 const fs = require("fs");
 const sha1 = require(`${basePath}/node_modules/sha1`);
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage } = require("canvas");
 const buildDir = `${basePath}/build`;
-const layersDir = `${basePath}/layers`;
+// const layersDir = `${basePath}/layers`;
+const layersDir = `${basePath}/../art`;
 const {
   format,
   baseUri,
@@ -25,15 +26,26 @@ const {
 const canvas = createCanvas(format.width, format.height);
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = format.smoothing;
+const canvasWoBg = createCanvas(format.width, format.height);
+const ctxWoBg = canvasWoBg.getContext("2d");
+ctxWoBg.imageSmoothingEnabled = format.smoothing;
 var metadataList = [];
 var attributesList = [];
 var dnaList = new Set();
 const selectedTraitsList = new Set();
 const HashlipsGiffer = require(`${basePath}/modules/HashlipsGiffer.js`);
+const POLICY_ID = "tobereplaced";
 
-const { selectTraits, createDna, isDnaUnique, constructLayerToDna, filterDNAOptions } = require('./dna');
-const { needsExclusion } = require('./exclusions');
-const { saveImage } = require('./io');
+const {
+  selectTraits,
+  createDna,
+  isDnaUnique,
+  constructLayerToDna,
+  filterDNAOptions,
+} = require("./dna");
+const { needsExclusion } = require("./exclusions");
+// const { saveImage } = require("./io");
+const { saveImage, saveImageWoBG } = require("./io");
 
 let hashlipsGiffer = null;
 
@@ -44,6 +56,7 @@ const buildSetup = () => {
   fs.mkdirSync(buildDir);
   fs.mkdirSync(`${buildDir}/json`);
   fs.mkdirSync(`${buildDir}/images`);
+  fs.mkdirSync(`${buildDir}/images/character`);
   if (gif.export) {
     fs.mkdirSync(`${buildDir}/gifs`);
   }
@@ -116,45 +129,180 @@ const drawBackground = () => {
   ctx.fillRect(0, 0, format.width, format.height);
 };
 
+// const addMetadata = (_dna, _edition) => {
+//   let dateTime = Date.now();
+//   let tempMetadata = {
+//     name: `${namePrefix} #${_edition}`,
+//     description: description,
+//     image: `${baseUri}/${_edition}.png`,
+//     imageCharacter: `${baseUri}/character/${_edition}.png`,
+//     dna: sha1(_dna),
+//     edition: _edition,
+//     date: dateTime,
+//     ...extraMetadata,
+//     attributes: attributesList,
+//     compiler: "HashLips Art Engine",
+//   };
+//   if (network == NETWORK.sol) {
+//     tempMetadata = {
+//       //Added metadata for solana
+//       name: tempMetadata.name,
+//       symbol: solanaMetadata.symbol,
+//       description: tempMetadata.description,
+//       //Added metadata for solana
+//       seller_fee_basis_points: solanaMetadata.seller_fee_basis_points,
+//       image: `image.png`,
+//       //Added metadata for solana
+//       external_url: solanaMetadata.external_url,
+//       edition: _edition,
+//       ...extraMetadata,
+//       attributes: tempMetadata.attributes,
+//       properties: {
+//         files: [
+//           {
+//             uri: "image.png",
+//             type: "image/png",
+//           },
+//         ],
+//         category: "image",
+//         creators: solanaMetadata.creators,
+//       },
+//     };
+//   }
+//   metadataList.push(tempMetadata);
+//   attributesList = [];
+// };
+
+const traitToAttrStarts = (traitType) => {
+  return attributesList
+    .find((attr) => attr.trait_type.startsWith(traitType))
+    ?.value?.replace(/_/g, " ");
+};
+
+const traitToAttrEnd = (traitType) => {
+  return attributesList
+    .find((attr) => attr.trait_type.endsWith(traitType))
+    ?.value?.replace(/_/g, " ");
+};
+
+const traitToEyes = () => {
+  const eyesCount = attributesList
+    .find((attr) => attr.trait_type.endsWith("Iris"))
+    ?.trait_type.split("/")[1];
+  const eyesColor = attributesList.find((attr) =>
+    attr.trait_type.endsWith("Iris")
+  )?.value;
+  return `${eyesCount}: ${eyesColor}`.replace(/_/g, " ");
+};
+
+const numberToWord = [
+  "Zero",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+];
+
+const traitToPlanets = () => {
+  const planetsCountInt = attributesList
+    .find((attr) => attr.trait_type.endsWith("Planet"))
+    ?.value.split("_").length;
+  const planetsCount = numberToWord[planetsCountInt];
+  const planetsNames = attributesList.find((attr) =>
+    attr.trait_type.endsWith("Planet")
+  )?.value;
+  return `${planetsCount}: ${planetsNames}`.replace(/_/g, " ");
+};
+
+const isSpaceShip = () => {
+  const hasSpaceShip = attributesList.find((attr) =>
+    attr.trait_type.startsWith("Spaceship/")
+  );
+  // console.log("hasSpaceShip => ", hasSpaceShip);
+
+  return !!hasSpaceShip;
+};
+
 const addMetadata = (_dna, _edition) => {
-  let dateTime = Date.now();
-  let tempMetadata = {
-    name: `${namePrefix} #${_edition}`,
-    description: description,
-    image: `${baseUri}/${_edition}.png`,
-    dna: sha1(_dna),
-    edition: _edition,
-    date: dateTime,
-    ...extraMetadata,
-    attributes: attributesList,
-    compiler: "HashLips Art Engine",
-  };
-  if (network == NETWORK.sol) {
+  // console.log("isSpaceShip: ", isSpaceShip());
+
+  let tempMetadata;
+  if (isSpaceShip()) {
     tempMetadata = {
-      //Added metadata for solana
-      name: tempMetadata.name,
-      symbol: solanaMetadata.symbol,
-      description: tempMetadata.description,
-      //Added metadata for solana
-      seller_fee_basis_points: solanaMetadata.seller_fee_basis_points,
-      image: `image.png`,
-      //Added metadata for solana
-      external_url: solanaMetadata.external_url,
-      edition: _edition,
-      ...extraMetadata,
-      attributes: tempMetadata.attributes,
-      properties: {
-        files: [
-          {
-            uri: "image.png",
-            type: "image/png",
+      721: {
+        [POLICY_ID]: {
+          [`ClayInvaders${_edition}`]: {
+            name: `${namePrefix} #${_edition}`,
+            description: [
+              "ClayInvaders invading galaxies and #Cardano with their",
+              " magical, mysterious and clumsy ways.",
+            ],
+            image: `${baseUri}/${_edition}.png`,
+            files: [
+              {
+                mediaType: "image/png",
+                src: `${baseUri}/${_edition}.png`,
+              },
+            ],
+            mediaType: "image/png",
+            Attributes: {
+              Galaxy: traitToAttrStarts("Galaxy"),
+              Spaceship: traitToAttrStarts("Spaceship"),
+              Planets: traitToPlanets(),
+            },
+            Publisher: "www.clayinvaders.art",
+            Twitter: "@clayinvaders",
+            Discord: "tbd",
           },
-        ],
-        category: "image",
-        creators: solanaMetadata.creators,
+        },
+      },
+    };
+  } else {
+    tempMetadata = {
+      721: {
+        [POLICY_ID]: {
+          [`ClayInvaders${_edition}`]: {
+            name: `${namePrefix} #${_edition}`,
+            description: [
+              "ClayInvaders invading galaxies and #Cardano with their",
+              " magical, mysterious and clumsy ways.",
+            ],
+            image: `${baseUri}/${_edition}.png`,
+            files: [
+              {
+                mediaType: "image/png",
+                src: `${baseUri}/${_edition}.png`,
+              },
+            ],
+            mediaType: "image/png",
+            Attributes: {
+              Galaxy: traitToAttrStarts("Galaxy"),
+              Spaceship: traitToAttrStarts("Spaceships"),
+              Planets: traitToPlanets(),
+              Pet: traitToAttrStarts("Pet"),
+              Horns: traitToAttrStarts("Horns"),
+              Body: traitToAttrStarts("Body"),
+              Bandages_Body: traitToAttrStarts("Bandages_Body"),
+              Eyes: traitToEyes(),
+              Brows: traitToAttrStarts("Eyes_Brows"),
+              Mouth: traitToAttrStarts("Mouth"),
+              Bandages_Head: traitToAttrStarts("Bandages"),
+              Accessories: traitToAttrStarts("Accessories"),
+            },
+            Publisher: "www.clayinvaders.art",
+            Twitter: "@clayinvaders",
+            Discord: "tbd",
+          },
+        },
       },
     };
   }
+
   metadataList.push(tempMetadata);
   attributesList = [];
 };
@@ -169,6 +317,8 @@ const addAttributes = (_element) => {
 
 const loadLayerImg = async (_layer) => {
   return new Promise(async (resolve) => {
+    if (!_layer.selectedElement) console.log("_layer", _layer);
+    // console.log(_layer.selectedElement);
     const image = await loadImage(`${_layer.selectedElement.path}`);
     resolve({ layer: _layer, loadedImage: image });
   });
@@ -200,18 +350,47 @@ const drawElement = (_renderObject, _index, _layersLen) => {
         format.height
       );
 
+  // console.log(_renderObject.layer.name);
+  if (_renderObject.layer.name !== "Background") {
+    ctxWoBg.globalAlpha = _renderObject.layer.opacity;
+    ctxWoBg.globalCompositeOperation = _renderObject.layer.blend;
+    ctxWoBg.drawImage(
+      _renderObject.loadedImage,
+      0,
+      0,
+      format.width,
+      format.height
+    );
+  }
   addAttributes(_renderObject);
 };
 
+// const saveMetaDataSingleFile = (_editionCount) => {
+//   let metadata = metadataList.find((meta) => meta.edition == _editionCount);
+//   debugLogs
+//     ? console.log(
+//         `Writing metadata for ${_editionCount}: ${JSON.stringify(metadata)}`
+//       )
+//     : null;
+//   fs.writeFileSync(
+//     `${buildDir}/json/${_editionCount}.json`,
+//     JSON.stringify(metadata, null, 2)
+//   );
+// };
 const saveMetaDataSingleFile = (_editionCount) => {
-  let metadata = metadataList.find((meta) => meta.edition == _editionCount);
+  let metadata = metadataList.find((meta) => {
+    for (var k in meta[721][POLICY_ID]) {
+      break;
+    }
+    return k === `ClayInvaders${_editionCount}`;
+  });
   debugLogs
     ? console.log(
         `Writing metadata for ${_editionCount}: ${JSON.stringify(metadata)}`
       )
     : null;
   fs.writeFileSync(
-    `${buildDir}/json/${_editionCount}.json`,
+    `${buildDir}/json/ClayInvaders #${_editionCount}.metadata`,
     JSON.stringify(metadata, null, 2)
   );
 };
@@ -260,7 +439,7 @@ const startCreating = async () => {
       editionCount <= layerConfigurations[layerConfigIndex].growEditionSizeTo
     ) {
       const traits = selectTraits(layers);
-      const newDna = createDna(traits)
+      const newDna = createDna(traits);
       if (!isDnaUnique(dnaList, newDna)) {
         console.log("DNA exists!");
         failedCount++;
@@ -273,10 +452,22 @@ const startCreating = async () => {
         continue;
       }
 
-      const maxRepeatedTraits = layerConfigurations[layerConfigIndex].maxRepeatedTraits;
-      const incompatibleTraits = layerConfigurations[layerConfigIndex].incompatibleTraits;
-      if (needsExclusion(selectedTraitsList, traits, maxRepeatedTraits, incompatibleTraits)) {
-        console.log("Combination of traits excluded because of exclusion rules!");
+      const maxRepeatedTraits =
+        layerConfigurations[layerConfigIndex].maxRepeatedTraits;
+      const incompatibleTraits =
+        layerConfigurations[layerConfigIndex].incompatibleTraits;
+      if (
+        needsExclusion(
+          selectedTraitsList,
+          traits,
+          maxRepeatedTraits,
+          incompatibleTraits
+        )
+      ) {
+        console.log(
+          "Combination of traits excluded because of exclusion rules!",
+          traits
+        );
         failedCount++;
         if (failedCount >= uniqueDnaTorrance) {
           console.log(
@@ -297,6 +488,7 @@ const startCreating = async () => {
       await Promise.all(loadedElements).then((renderObjectArray) => {
         debugLogs ? console.log("Clearing canvas") : null;
         ctx.clearRect(0, 0, format.width, format.height);
+        ctxWoBg.clearRect(0, 0, format.width, format.height);
         if (gif.export) {
           hashlipsGiffer = new HashlipsGiffer(
             canvas,
@@ -327,13 +519,15 @@ const startCreating = async () => {
         debugLogs
           ? console.log("Editions left to create: ", abstractedIndexes)
           : null;
-        saveImage(abstractedIndexes[0], canvas, buildDir);
-        addMetadata(newDna, abstractedIndexes[0]);
-        saveMetaDataSingleFile(abstractedIndexes[0]);
+
+        const paddedIndex = abstractedIndexes[0].toString().padStart(5, "0");
+
+        saveImage(paddedIndex, canvas, buildDir);
+        // saveImageWoBG(paddedIndex, canvasWoBg, buildDir);
+        addMetadata(newDna, paddedIndex);
+        saveMetaDataSingleFile(paddedIndex);
         console.log(
-          `Created edition: ${abstractedIndexes[0]}, with DNA: ${sha1(
-            newDna
-          )}`
+          `Created edition: ${paddedIndex}, with DNA: ${sha1(newDna)}`
         );
       });
       dnaList.add(filterDNAOptions(newDna));

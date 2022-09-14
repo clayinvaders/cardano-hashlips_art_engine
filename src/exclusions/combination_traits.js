@@ -1,11 +1,19 @@
-const combinationOfTraitsAlreadyExists  = (selectedTraitsList, newTraits, maxRepeatedTraits) => {
+const combinationOfTraitsAlreadyExists = (
+  selectedTraitsList,
+  newTraits,
+  maxRepeatedTraits
+) => {
   if (!maxRepeatedTraits) {
     return false;
   }
 
   for (let existingTraits of selectedTraitsList) {
     let commonTraits = 0;
-    for (let i = 0; (i < newTraits.length) && (commonTraits <= maxRepeatedTraits); i++) {
+    for (
+      let i = 0;
+      i < newTraits.length && commonTraits <= maxRepeatedTraits;
+      i++
+    ) {
       if (newTraits[i].id === existingTraits[i].id) {
         commonTraits++;
       }
@@ -13,7 +21,6 @@ const combinationOfTraitsAlreadyExists  = (selectedTraitsList, newTraits, maxRep
     if (commonTraits > maxRepeatedTraits) {
       return true;
     }
-
   }
   return false;
 };
