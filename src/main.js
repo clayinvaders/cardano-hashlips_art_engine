@@ -213,15 +213,25 @@ const traitToPlanets = () => {
     .find((attr) => attr.trait_type.endsWith("Planet"))
     ?.value.split("_").length;
   const planetsCount = numberToWord[planetsCountInt];
-  const planetsNames = attributesList.find((attr) =>
-    attr.trait_type.endsWith("Planet")
-  )?.value;
-  return `${planetsCount}: ${planetsNames}`.replace(/_/g, " ");
+  return planetsCount;
+  // // const planetsNames = attributesList.find((attr) =>
+  // //   attr.trait_type.endsWith("Planet")
+  // // )?.value;
+  // return `${planetsCount}: ${planetsNames}`.replace(/_/g, " ");
 };
 
 const isSpaceShip = () => {
   const hasSpaceShip = attributesList.find((attr) =>
     attr.trait_type.startsWith("Spaceship/")
+  );
+  // console.log("hasSpaceShip => ", hasSpaceShip);
+
+  return !!hasSpaceShip;
+};
+
+const isSpaceSuit = () => {
+  const hasSpaceShip = attributesList.find((attr) =>
+    attr.trait_type.startsWith("Suit/")
   );
   // console.log("hasSpaceShip => ", hasSpaceShip);
 
@@ -242,11 +252,11 @@ const addMetadata = (_dna, _edition) => {
               "ClayInvaders invading galaxies and #Cardano with their",
               " magical, mysterious and clumsy ways.",
             ],
-            image: `${baseUri}/${_edition}.png`,
+            image: `${baseUri}/ClayInvaders #${_edition}.png`,
             files: [
               {
                 mediaType: "image/png",
-                src: `${baseUri}/${_edition}.png`,
+                src: `${baseUri}/ClayInvaders #${_edition}.png`,
               },
             ],
             mediaType: "image/png",
@@ -257,7 +267,47 @@ const addMetadata = (_dna, _edition) => {
             },
             Publisher: "www.clayinvaders.art",
             Twitter: "@clayinvaders",
-            Discord: "tbd",
+            Type: "Spaceship",
+          },
+        },
+      },
+    };
+  } else if (isSpaceSuit()) {
+    tempMetadata = {
+      721: {
+        [POLICY_ID]: {
+          [`ClayInvaders${_edition}`]: {
+            name: `${namePrefix} #${_edition}`,
+            description: [
+              "ClayInvaders invading galaxies and #Cardano with their",
+              " magical, mysterious and clumsy ways.",
+            ],
+            image: `${baseUri}/ClayInvaders #${_edition}.png`,
+            files: [
+              {
+                mediaType: "image/png",
+                src: `${baseUri}/ClayInvaders #${_edition}.png`,
+              },
+            ],
+            mediaType: "image/png",
+            Attributes: {
+              Galaxy: traitToAttrStarts("Galaxy"),
+              Spaceship: traitToAttrStarts("Spaceships"),
+              Planets: traitToPlanets(),
+              Pet: traitToAttrStarts("Pet"),
+              Horns: traitToAttrStarts("Horns"),
+              Body: traitToAttrStarts("Body"),
+              Bandages_Body: traitToAttrStarts("Bandages_Body"),
+              Eyes: traitToEyes(),
+              Brows: traitToAttrStarts("Eyes_Brows"),
+              Mouth: traitToAttrStarts("Mouth"),
+              Bandages_Head: traitToAttrStarts("Bandages"),
+              Accessories: traitToAttrStarts("Accessories"),
+              Suit: traitToAttrStarts("Suit"),
+            },
+            Publisher: "www.clayinvaders.art",
+            Twitter: "@clayinvaders",
+            Type: "Crew",
           },
         },
       },
@@ -272,11 +322,11 @@ const addMetadata = (_dna, _edition) => {
               "ClayInvaders invading galaxies and #Cardano with their",
               " magical, mysterious and clumsy ways.",
             ],
-            image: `${baseUri}/${_edition}.png`,
+            image: `${baseUri}/ClayInvaders #${_edition}.png`,
             files: [
               {
                 mediaType: "image/png",
-                src: `${baseUri}/${_edition}.png`,
+                src: `${baseUri}/ClayInvaders #${_edition}.png`,
               },
             ],
             mediaType: "image/png",
@@ -296,7 +346,7 @@ const addMetadata = (_dna, _edition) => {
             },
             Publisher: "www.clayinvaders.art",
             Twitter: "@clayinvaders",
-            Discord: "tbd",
+            Type: "Passenger",
           },
         },
       },

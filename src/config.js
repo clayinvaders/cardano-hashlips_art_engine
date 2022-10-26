@@ -234,7 +234,7 @@ Object.keys(bodyTypes).forEach((bodyTypeKey) => {
 
 console.log(layerConfigurations);
 
-const shuffleLayerConfigurations = false;
+const shuffleLayerConfigurations = true;
 
 const debugLogs = false;
 
